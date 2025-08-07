@@ -1,29 +1,30 @@
+import { db } from '../db';
+import { stockOpnameItemsTable, stockOpnameSessionsTable } from '../db/schema';
 import { type GetSessionItemsInput, type StockOpnameItem } from '../schema';
+import { eq } from 'drizzle-orm';
 
 export const getSessionItems = async (input: GetSessionItemsInput): Promise<StockOpnameItem[]> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all scanned items for a specific stock opname session.
-    // Should validate that session exists and user has permission to view its items.
-    return Promise.resolve([
-        {
-            id: 1,
-            session_id: input.session_id,
-            sku: 'SKU001',
-            lot_number: 'LOT2024001',
-            quantity: 10,
-            barcode_data: '1234567890123',
-            scanned_at: new Date(),
-            created_at: new Date()
-        },
-        {
-            id: 2,
-            session_id: input.session_id,
-            sku: 'SKU002',
-            lot_number: 'LOT2024002',
-            quantity: 25,
-            barcode_data: '2345678901234',
-            scanned_at: new Date(),
-            created_at: new Date()
-        }
-    ] as StockOpnameItem[]);
+  try {
+    // First, validate that the session exists
+    const sessionExists = await db.select()
+      .from(stockOpnameSessionsTable)
+      .where(eq(stockOpnameSessionsTable.id, input.session_id))
+      .execute();
+
+    if (sessionExists.length === 0) {
+      throw new Error(`Stock opname session with ID ${input.session_id} not found`);
+    }
+
+    // Fetch all items for the session, ordered by scan time (most recent first)
+    const items = await db.select()
+      .from(stockOpnameItemsTable)
+      .where(eq(stockOpnameItemsTable.session_id, input.session_id))
+      .orderBy(stockOpnameItemsTable.scanned_at)
+      .execute();
+
+    return items;
+  } catch (error) {
+    console.error('Failed to get session items:', error);
+    throw error;
+  }
 };

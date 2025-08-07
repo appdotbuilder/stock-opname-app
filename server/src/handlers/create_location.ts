@@ -1,15 +1,23 @@
+import { db } from '../db';
+import { locationsTable } from '../db/schema';
 import { type CreateLocationInput, type Location } from '../schema';
 
 export const createLocation = async (input: CreateLocationInput): Promise<Location> => {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is creating a new location that can be used for stock opname sessions.
-    // Should validate that location code is unique and persist to database.
-    return Promise.resolve({
-        id: 1,
+  try {
+    // Insert location record
+    const result = await db.insert(locationsTable)
+      .values({
         name: input.name,
         code: input.code,
-        description: input.description || null,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as Location);
+        description: input.description ?? null
+      })
+      .returning()
+      .execute();
+
+    const location = result[0];
+    return location;
+  } catch (error) {
+    console.error('Location creation failed:', error);
+    throw error;
+  }
 };
